@@ -47,18 +47,23 @@ app.post("/getMessagesByPerson", async (req, res) => {
   }
 });
 
-// Predefined, safe endpoint to create a person
-app.post("/createPerson", async (req, res) => {
-  const { nome } = req.body;
 
-  if (typeof nome !== "string" || nome.trim() === "") {
-    return res.status(400).json({ success: false, error: "Invalid 'nome' parameter" });
+app.post("/getMessagesByDate", async (req, res) => {
+  const { date } = req.body;
+
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+  if (typeof date !== "string" || !dateRegex.test(date)) {
+    return res.status(400).json({ success: false, error: "Invalid date format. Use YYYY-MM-DD." });
   }
+
+  const startDateTime = `${date}T00:00:00`;
+  const endDateTime = `${date}T23:59:59`;
 
   try {
     const records = await runQuery(
-      "CREATE (p:Pessoa { nome: $nome }) RETURN p",
-      { nome }
+      "MATCH (m:Mensagem) WHERE m.timestamp >= $startDateTime AND m.timestamp <= $endDateTime RETURN m",
+      { startDateTime, endDateTime }
     );
     res.json({ success: true, records });
   } catch (err) {
@@ -66,6 +71,48 @@ app.post("/createPerson", async (req, res) => {
     res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
+
+
+app.post("/getMessagesByDateRange", async (req, res) => {
+  const { startDate, endDate } = req.body;
+
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+  if (
+    typeof startDate !== "string" || 
+    typeof endDate !== "string" ||
+    !dateRegex.test(startDate) ||
+    !dateRegex.test(endDate)
+  ) {
+    return res.status(400).json({ success: false, error: "Invalid date format. Use YYYY-MM-DD for both startDate and endDate." });
+  }
+
+  const startDateTime = `${startDate}T00:00:00`;
+  const endDateTime = `${endDate}T23:59:59`;
+
+  try {
+    const records = await runQuery(
+      "MATCH (m:Mensagem) WHERE m.timestamp >= $startDateTime AND m.timestamp <= $endDateTime RETURN m",
+      { startDateTime, endDateTime }
+    );
+    res.json({ success: true, records });
+  } catch (err) {
+    console.error("❌ Error executing query:", err);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+app.get("/getAllPeople", async (req, res) => {
+  try {
+    const records = await runQuery(
+      "MATCH (p:Pessoa) RETURN p"
+    );
+    res.json({ success: true, records });
+  } catch (err) {
+    console.error("❌ Error executing query:", err);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+
 
 // Start the server
 app.listen(port, () => {

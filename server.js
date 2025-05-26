@@ -72,14 +72,13 @@ app.post("/getMessagesByDate", async (req, res) => {
   }
 });
 
-
 app.post("/getMessagesByDateRange", async (req, res) => {
   const { startDate, endDate } = req.body;
 
   const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
   if (
-    typeof startDate !== "string" || 
+    typeof startDate !== "string" ||
     typeof endDate !== "string" ||
     !dateRegex.test(startDate) ||
     !dateRegex.test(endDate)
@@ -101,6 +100,7 @@ app.post("/getMessagesByDateRange", async (req, res) => {
     res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
+
 app.get("/getAllPeople", async (req, res) => {
   try {
     const records = await runQuery(
@@ -113,6 +113,29 @@ app.get("/getAllPeople", async (req, res) => {
   }
 });
 
+app.get("/getAllPendencies", async (req, res) => {
+  try {
+    const records = await runQuery(
+      "MATCH (n:Pendencia) WITH n.tarefa as tarefa, COLLECT(n) as nodes RETURN nodes[0] as n"
+    );
+    res.json({ success: true, records });
+  } catch (err) {
+    console.error("❌ Error executing query:", err);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+
+app.get("/getAllJournals", async (req, res) => {
+  try {
+    const records = await runQuery(
+      "MATCH (n:Diario) RETURN n ORDER BY n.data DESC LIMIT 30"
+    );
+    res.json({ success: true, records });
+  } catch (err) {
+    console.error("❌ Error executing query:", err);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
 
 // Start the server
 app.listen(port, () => {
